@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/phi42/ad-plugin-FScheck/rule"
+	"github.com/phi42/ad-enforcement-tool/rule"
 )
 
 // CheckResult holds the outcome of running all file checks for one rule.

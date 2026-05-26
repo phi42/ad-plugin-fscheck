@@ -6,8 +6,8 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/phi42/ad-enforcement-tool/rule"
 	"github.com/phi42/ad-plugin-FScheck/domain"
-	"github.com/phi42/ad-plugin-FScheck/rule"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 )
