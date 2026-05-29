@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"log/slog"
 	"os"
 
 	"github.com/phi42/ad-enforcement-tool/rule"
@@ -16,26 +15,11 @@ var rootCmd = &cobra.Command{
 	Use:   "fscheck",
 	Short: "Filesystem rule executor for ADR-based DSL rules (file checks only)",
 	Run: func(cmd *cobra.Command, args []string) {
-		setupPluginLogger()
 		if err := run(); err != nil {
-			slog.Error("plugin failed", "error", err)
+			fmt.Fprintf(os.Stderr, "error: %v\n", err)
 			os.Exit(1)
 		}
 	},
-}
-
-func setupPluginLogger() {
-	level := slog.LevelInfo
-	skipWarn := false
-	switch os.Getenv("ADE_LOG_LEVEL") {
-	case "debug":
-		level = slog.LevelDebug
-	case "quiet":
-		level = slog.LevelError
-	case "no-warnings":
-		skipWarn = true
-	}
-	slog.SetDefault(slog.New(newCLIHandler(os.Stderr, level, skipWarn)))
 }
 
 func Execute() {
@@ -65,7 +49,7 @@ func run() error {
 	// executes file rules; code and custom rules are skipped.
 	for _, r := range spec.Rules {
 		if !r.GetIsFileRule() {
-			slog.Warn(fmt.Sprintf("rule %q skipped (filecheck handles file rules only)", r.GetName()))
+			fmt.Fprintf(os.Stderr, "warn: rule %q skipped (filecheck handles file rules only)\n", r.GetName())
 		}
 	}
 
@@ -86,14 +70,14 @@ func run() error {
 	hasFailures := false
 	for _, res := range results {
 		for _, w := range res.Warnings {
-			slog.Warn(fmt.Sprintf("failed [%s] with warning: %s", res.RuleName, w))
+			fmt.Fprintf(os.Stderr, "warn: failed [%s] with warning: %s\n", res.RuleName, w)
 		}
 		for _, f := range res.Failures {
-			slog.Error(fmt.Sprintf("failed [%s] with error: %s", res.RuleName, f))
+			fmt.Fprintf(os.Stderr, "error: failed [%s] with error: %s\n", res.RuleName, f)
 			hasFailures = true
 		}
 		if len(res.Failures) == 0 && len(res.Warnings) == 0 {
-			slog.Info(fmt.Sprintf("passed [%s]", res.RuleName))
+			fmt.Fprintf(os.Stderr, "passed [%s]\n", res.RuleName)
 		}
 	}
 
