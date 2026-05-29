@@ -40,7 +40,7 @@ func setupPluginLogger() {
 
 func Execute() {
 	if len(os.Args) == 2 && os.Args[1] == "--info" {
-		fmt.Println(`{"modes":["verify"]}`)
+		fmt.Println(`{"modes":["verify"],"config_prefix":"fscheck"}`)
 		os.Exit(0)
 	}
 	err := rootCmd.Execute()
@@ -69,9 +69,8 @@ func run() error {
 		}
 	}
 
-	// Use the root dir provided by ade enforce verify (via OutputDir field), falling
-	// back to the current working directory.
-	rootDir := spec.GetOutputDir()
+	// Use the root dir from plugin_config, falling back to the current working directory.
+	rootDir := spec.GetPluginConfig()["root-dir"]
 	if rootDir == "" {
 		rootDir, err = os.Getwd()
 		if err != nil {
