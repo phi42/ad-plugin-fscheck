@@ -42,7 +42,7 @@ changelog:
 release:
   github:
     owner: phi42
-    name: ad-plugin-FScheck
+    name: ad-plugin-fscheck
   draft: false
   prerelease: auto
   replace_existing_artifacts: true

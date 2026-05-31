@@ -38,15 +38,15 @@ func Execute() {
 }
 
 func run() error {
-	// Read protobuf SpecIR from stdin.
+	// Read protobuf Spec from stdin.
 	payload, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("reading stdin: %w", err)
 	}
 
-	var spec rule.SpecIR
+	var spec rule.Spec
 	if err := proto.Unmarshal(payload, &spec); err != nil {
-		return fmt.Errorf("unmarshal SpecIR protobuf: %w", err)
+		return fmt.Errorf("unmarshal Spec protobuf: %w", err)
 	}
 
 	// Warn about any rules this plugin does not handle. filecheck only

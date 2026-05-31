@@ -18,10 +18,10 @@ type CheckResult struct {
 	Warnings []string
 }
 
-// RunFileChecks executes all rule.CheckIR entries in spec against the filesystem,
+// RunFileChecks executes all rule.Check entries in spec against the filesystem,
 // rooted at rootDir. Rules with rule.Severity warning produce non-fatal warnings;
 // all other rules produce hard failures.
-func RunFileChecks(spec *rule.SpecIR, rootDir string) ([]CheckResult, error) {
+func RunFileChecks(spec *rule.Spec, rootDir string) ([]CheckResult, error) {
 	// Build selector name → pattern map for path resolution.
 	selMap := make(map[string]string, len(spec.Selectors))
 	for _, s := range spec.Selectors {
