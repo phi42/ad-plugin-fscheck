@@ -1,19 +1,30 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 
 	"github.com/phi42/ad-enforcement-tool/rule"
-	"github.com/phi42/ad-plugin-FScheck/domain"
+	"github.com/phi42/ad-plugin-FScheck/fscheck"
 	"github.com/spf13/cobra"
 	"google.golang.org/protobuf/proto"
 )
 
+type pluginInfo struct {
+	Modes        []string `json:"modes"`
+	ConfigPrefix string   `json:"config_prefix"`
+}
+
+var info = pluginInfo{
+	Modes:        []string{"verify"},
+	ConfigPrefix: "fscheck",
+}
+
 var rootCmd = &cobra.Command{
-	Use:   "fscheck",
-	Short: "Filesystem rule executor for ADR-based DSL rules (file checks only)",
+	Use:   "Install this plugin using `ade plugin install` and then run it via `ade verify`",
+	Short: "Filesystem rule executor for ADR rules (file rules only)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := run(); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -24,7 +35,12 @@ var rootCmd = &cobra.Command{
 
 func Execute() {
 	if len(os.Args) == 2 && os.Args[1] == "--info" {
-		fmt.Println(`{"modes":["verify"],"config_prefix":"fscheck"}`)
+		out, err := json.Marshal(info)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error: marshaling plugin info: %v\n", err)
+			os.Exit(1)
+		}
+		fmt.Println(string(out))
 		os.Exit(0)
 	}
 	if fi, err := os.Stdin.Stat(); err == nil && (fi.Mode()&os.ModeCharDevice) != 0 {
@@ -38,7 +54,7 @@ func Execute() {
 }
 
 func run() error {
-	// Read protobuf Spec from stdin.
+	// read protobuf Spec from stdin
 	payload, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("reading stdin: %w", err)
@@ -49,15 +65,16 @@ func run() error {
 		return fmt.Errorf("unmarshal Spec protobuf: %w", err)
 	}
 
-	// Warn about any rules this plugin does not handle. filecheck only
-	// executes file rules; code and custom rules are skipped.
+	var skipped int
 	for _, r := range spec.Rules {
 		if !r.GetIsFileRule() {
-			fmt.Fprintf(os.Stderr, "warn: rule %q skipped (filecheck handles file rules only)\n", r.GetName())
+			skipped++
 		}
 	}
+	if skipped > 0 {
+		fmt.Fprintf(os.Stderr, "warn: %d rule(s) skipped (plugin can only handle file rules)\n", skipped)
+	}
 
-	// Use the root dir from plugin_config, falling back to the current working directory.
 	rootDir := spec.GetPluginConfig()["root-dir"]
 	if rootDir == "" {
 		rootDir, err = os.Getwd()
@@ -66,7 +83,7 @@ func run() error {
 		}
 	}
 
-	results, err := domain.RunFileChecks(&spec, rootDir)
+	results, err := fscheck.RunFileChecks(&spec, rootDir)
 	if err != nil {
 		return fmt.Errorf("running file checks: %w", err)
 	}
@@ -74,10 +91,10 @@ func run() error {
 	hasFailures := false
 	for _, res := range results {
 		for _, w := range res.Warnings {
-			fmt.Fprintf(os.Stderr, "warn: failed [%s] with warning: %s\n", res.RuleName, w)
+			fmt.Fprintf(os.Stderr, "warn: failed [%s]: %s\n", res.RuleName, w)
 		}
 		for _, f := range res.Failures {
-			fmt.Fprintf(os.Stderr, "error: failed [%s] with error: %s\n", res.RuleName, f)
+			fmt.Fprintf(os.Stderr, "error: failed [%s]: %s\n", res.RuleName, f)
 			hasFailures = true
 		}
 		if len(res.Failures) == 0 && len(res.Warnings) == 0 {
