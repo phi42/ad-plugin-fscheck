@@ -19,7 +19,7 @@ type pluginInfo struct {
 }
 
 // Version is set at build time via -ldflags.
-var Version = "v0.1.2-dev"
+var Version = "0.1.2-dev"
 
 var info = pluginInfo{
 	Modes:        []string{"verify"},
