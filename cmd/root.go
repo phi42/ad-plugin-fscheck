@@ -19,7 +19,7 @@ type pluginInfo struct {
 }
 
 // Version is set at build time via -ldflags.
-var Version = "0.1.2-dev"
+var Version = "0.1.3-dev"
 
 var info = pluginInfo{
 	Modes:        []string{"verify"},
@@ -28,7 +28,7 @@ var info = pluginInfo{
 
 var rootCmd = &cobra.Command{
 	Use:   "Install this plugin using `ade plugin install` and then run it via `ade verify`",
-	Short: "Filesystem rule executor for ADR rules (file rules only)",
+	Short: "Filesystem rule executor for ADR rules (file checks only)",
 	Run: func(cmd *cobra.Command, args []string) {
 		if err := run(); err != nil {
 			fmt.Fprintf(os.Stderr, "error: %v\n", err)
@@ -77,7 +77,7 @@ func run() error {
 		}
 	}
 	if skipped > 0 {
-		fmt.Fprintf(os.Stderr, "warn: %d rule(s) skipped (plugin can only handle file rules)\n", skipped)
+		fmt.Fprintf(os.Stderr, "warning:	%d rule(s) skipped (plugin can only handle file rules)\n", skipped)
 	}
 
 	rootDir := spec.GetPluginConfig()["root-dir"]
@@ -93,17 +93,18 @@ func run() error {
 		return fmt.Errorf("running file checks: %w", err)
 	}
 
+	adrID := spec.GetAdr().GetId()
 	hasFailures := false
 	for _, res := range results {
 		for _, w := range res.Warnings {
-			fmt.Fprintf(os.Stderr, "warn: failed [%s]: %s\n", res.RuleName, w)
+			fmt.Fprintf(os.Stderr, "warning:	%s - %s (%s)\n", adrID, res.RuleName, w)
 		}
 		for _, f := range res.Failures {
-			fmt.Fprintf(os.Stderr, "error: failed [%s]: %s\n", res.RuleName, f)
+			fmt.Fprintf(os.Stderr, "failed:		%s - %s (%s)\n", adrID, res.RuleName, f)
 			hasFailures = true
 		}
 		if len(res.Failures) == 0 && len(res.Warnings) == 0 {
-			fmt.Fprintf(os.Stderr, "passed [%s]\n", res.RuleName)
+			fmt.Fprintf(os.Stderr, "passed:		%s - %s\n", adrID, res.RuleName)
 		}
 	}
 
